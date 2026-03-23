@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lager Scanner</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Lager Scanner">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+  <meta name="theme-color" content="#e0e5ec">
+  <style>
+    :root {
+      --bg: #e0e5ec;
+      --shadow-light: #ffffff;
+      --shadow-dark: #a3b1c6;
+      --brand: #93c01f;
+      --brand-dark: #7fa31a;
+      --text: #2d3436;
+      --text-light: #636e72;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .logo-container {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 1.5rem;
+      border-radius: 24px;
+      background: var(--bg);
+      box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .logo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 16px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--text-light);
+    }
+
+    .app-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .app-card {
+      border-radius: 24px;
+      background: var(--bg);
+      box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+      padding: 1.75rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: block;
+    }
+
+    .app-card:hover {
+      box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+    }
+
+    .app-card:active {
+      box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+    }
+
+    .app-icon-wrapper {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: var(--bg);
+      box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      font-size: 1.75rem;
+    }
+
+    .app-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      color: var(--text);
+    }
+
+    .app-description {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      line-height: 1.5;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding: 1.5rem;
+      border-radius: 20px;
+      background: var(--bg);
+      box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+    }
+
+    .footer p {
+      font-size: 0.8rem;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-container">
+        <img src="icons/icon-192x192.png" alt="Logo">
+      </div>
+      <h1>Lager Scanner</h1>
+      <p class="subtitle">Wählen Sie eine Anwendung</p>
+    </div>
+
+    <div class="app-grid">
+      <a href="plenty-scanner.html" class="app-card">
+        <div class="app-icon-wrapper">
+          <span>📦</span>
+        </div>
+        <div class="app-title">PlentyScanner</div>
+        <div class="app-description">Wareneingang OSF scannen</div>
+      </a>
+
+      <a href="sped-scan.html" class="app-card">
+        <div class="app-icon-wrapper">
+          <span>🏷️</span>
+        </div>
+        <div class="app-title">SpedScan</div>
+        <div class="app-description">Label für Spedition scannen</div>
+      </a>
+
+      <a href="liefer-scanner.html" class="app-card">
+        <div class="app-icon-wrapper">
+          <span>⚖️</span>
+        </div>
+        <div class="app-title">Lieferscanner</div>
+        <div class="app-description">Lieferung erfassen mit Testgewichten</div>
+      </a>
+    </div>
+
+    <div class="footer">
+      <p>Lager Scanner PWA &copy; 2026</p>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
