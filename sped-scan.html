@@ -14,163 +14,122 @@
       --shadow-light: #ffffff;
       --shadow-dark: #a3b1c6;
       --brand: #93c01f;
+      --orange: #e67e22;
       --text: #2d3436;
       --text-light: #636e72;
       --error-bg: #fee;
       --error: #900;
       --matched: #d4f7d4;
+      --labeled: #fff3e0;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       min-height: 100vh;
       padding: 1rem;
+      transition: all 0.3s ease;
     }
-
     .container { max-width: 960px; margin: 0 auto; }
-
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1.5rem;
     }
-
     h1 { font-size: 1.5rem; font-weight: 700; }
-
     .home-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      background: var(--bg);
+      width: 44px; height: 44px; border-radius: 14px; background: var(--bg);
       box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      color: var(--text);
-      text-decoration: none;
-      transition: all 0.2s;
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; color: var(--text); text-decoration: none; transition: all 0.2s;
     }
+    .home-btn:active { box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light); }
 
-    .home-btn:active {
-      box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+    .mode-switch {
+      display: flex; gap: 1rem; margin-bottom: 1.5rem; background: var(--bg);
+      padding: 0.5rem; border-radius: 20px;
+      box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
     }
+    .mode-btn {
+      flex: 1; padding: 0.75rem; border-radius: 16px; border: none; background: transparent;
+      cursor: pointer; font-weight: 700; color: var(--text-light); transition: all 0.2s;
+    }
+    .mode-btn.active.green { color: var(--brand); background: var(--bg); box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light); }
+    .mode-btn.active.orange { color: var(--orange); background: var(--bg); box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light); }
 
     .neo-card {
-      border-radius: 20px;
-      background: var(--bg);
+      border-radius: 20px; background: var(--bg);
       box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
+      padding: 1.5rem; margin-bottom: 1.5rem;
     }
-
     .neo-card h3 { font-size: 1.1rem; margin-bottom: 1rem; }
-
-    label {
-      font-weight: 600;
-      font-size: 0.9rem;
-      display: block;
-      margin-bottom: 0.4rem;
-    }
-
+    label { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 0.4rem; }
     .neo-input {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border: none;
-      border-radius: 14px;
-      background: var(--bg);
+      width: 100%; padding: 0.75rem 1rem; border: none; border-radius: 14px; background: var(--bg);
       box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
-      font-size: 0.95rem;
-      color: var(--text);
-      outline: none;
+      font-size: 0.95rem; color: var(--text); outline: none;
     }
-
     .file-input-wrap input[type="file"] {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border-radius: 14px;
-      background: var(--bg);
+      width: 100%; padding: 0.75rem 1rem; border-radius: 14px; background: var(--bg);
       box-shadow: 3px 3px 6px var(--shadow-dark), -3px -3px 6px var(--shadow-light);
-      font-size: 0.85rem;
-      color: var(--text-light);
-      cursor: pointer;
+      font-size: 0.85rem; color: var(--text-light); cursor: pointer;
     }
-
     .file-input-wrap input[type="file"]::file-selector-button {
-      background: var(--brand);
-      color: #fff;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-right: 0.75rem;
+      background: var(--brand); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 10px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-right: 0.75rem;
     }
+    body.mode-bekleben .file-input-wrap input[type="file"]::file-selector-button { background: var(--orange); }
 
     .error-box {
-      background: var(--error-bg);
-      color: var(--error);
-      padding: 0.75rem 1rem;
-      border-radius: 14px;
-      text-align: center;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
+      background: var(--error-bg); color: var(--error); padding: 0.75rem 1rem; border-radius: 14px;
+      text-align: center; margin-bottom: 1rem; font-size: 0.9rem;
     }
-
-    .scan-status {
-      text-align: center;
-      margin-top: 1rem;
-      font-size: 0.9rem;
-    }
-
-    .scan-status .accent { color: #2a7a1f; font-weight: 700; }
+    .scan-status { text-align: center; margin-top: 1rem; font-size: 0.9rem; }
+    .scan-status .accent { color: var(--brand); font-weight: 700; }
+    body.mode-bekleben .scan-status .accent { color: var(--orange); }
 
     .status-panel {
-      background: var(--bg);
+      background: var(--bg); border-radius: 16px; padding: 1rem; margin-top: 1rem;
       box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
-      border-radius: 16px;
-      padding: 1rem;
-      margin-top: 1rem;
     }
-
     .table-wrap {
-      background: var(--bg);
-      box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
-      border-radius: 16px;
-      overflow-x: auto;
-      margin-top: 1rem;
+      background: var(--bg); box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+      border-radius: 16px; overflow-x: auto; margin-top: 1rem;
     }
-
     table { width: 100%; border-collapse: collapse; }
-
-    th, td {
-      padding: 0.6rem 0.75rem;
-      text-align: left;
-      font-size: 0.85rem;
-    }
-
-    th {
-      font-weight: 600;
-      background: var(--bg);
-      box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light);
-    }
-
+    th, td { padding: 0.6rem 0.75rem; text-align: left; font-size: 0.85rem; }
+    th { font-weight: 600; background: var(--bg); box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light); }
     tr.matched td { background: var(--matched); }
-
+    tr.labeled td { background: var(--labeled); opacity: 0.7; }
     .no-data { text-align: center; padding: 1.5rem; color: var(--text-light); }
-
+    
+    .bekleben-display { text-align: center; padding: 1rem; }
+    .bekleben-num { font-size: 5rem; font-weight: 900; color: var(--orange); line-height: 1; margin: 0.5rem 0; }
+    
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(224, 229, 236, 0.9);
+      display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(8px);
+    }
+    .modal-card {
+      background: var(--bg); border-radius: 30px; padding: 2rem; max-width: 95%; width: 500px;
+      box-shadow: 15px 15px 30px var(--shadow-dark), -15px -15px 30px var(--shadow-light);
+    }
+    .selection-btn {
+      width: 100%; padding: 1.25rem; margin-bottom: 1rem; border-radius: 18px; border: none; background: var(--bg);
+      box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+      cursor: pointer; text-align: left; transition: all 0.2s;
+    }
+    .selection-btn:active { box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light); }
+    .btn-skip {
+      width: 100%; padding: 1rem; border-radius: 14px; border: none; background: #4b4b4b; color: white;
+      font-weight: 700; cursor: pointer; margin-top: 0.5rem;
+    }
     ul { margin: 0.5rem 0 0.5rem 1.5rem; font-size: 0.85rem; }
   </style>
 </head>
-<body>
+<body class="mode-kontroll">
   <div id="root" class="container"></div>
   <script>
     const { createRoot } = ReactDOM;
@@ -182,11 +141,7 @@
     let useFallbackAudio = false;
     let fallbackSounds = {};
 
-    const soundFiles = {
-      positive: 'sounds/positive.mp3',
-      negative: 'sounds/negative.mp3',
-      confirm: 'sounds/confirm.mp3'
-    };
+    const soundFiles = { positive: 'sounds/positive.mp3', negative: 'sounds/negative.mp3', confirm: 'sounds/confirm.mp3' };
 
     async function initAudio() {
       if (audioEnabled) return true;
@@ -201,23 +156,16 @@
           return true;
         });
         await Promise.all(loadPromises);
-        audioEnabled = true;
-        useFallbackAudio = false;
-        return true;
+        audioEnabled = true; useFallbackAudio = false; return true;
       } catch (error) {
         try {
           const warmupPromises = Object.entries(soundFiles).map(async ([name, url]) => {
-            const audio = new Audio(url);
-            audio.preload = 'auto';
-            audio.volume = 1.0;
-            fallbackSounds[name] = audio;
+            const audio = new Audio(url); audio.preload = 'auto'; audio.volume = 1.0; fallbackSounds[name] = audio;
             try { audio.muted = true; await audio.play(); audio.pause(); audio.currentTime = 0; audio.muted = false; } catch(e) {}
             return true;
           });
           await Promise.all(warmupPromises);
-          audioEnabled = true;
-          useFallbackAudio = true;
-          return true;
+          audioEnabled = true; useFallbackAudio = true; return true;
         } catch (e) { return false; }
       }
     }
@@ -230,15 +178,20 @@
       } else {
         if (!audioContext || !audioBuffers[name]) return;
         try {
-          const source = audioContext.createBufferSource();
-          source.buffer = audioBuffers[name];
-          const gainNode = audioContext.createGain();
-          gainNode.gain.value = 1.0;
-          source.connect(gainNode);
-          gainNode.connect(audioContext.destination);
+          const source = audioContext.createBufferSource(); source.buffer = audioBuffers[name];
+          const gainNode = audioContext.createGain(); gainNode.gain.value = 1.0;
+          source.connect(gainNode); gainNode.connect(audioContext.destination);
           source.start(0);
         } catch(e) {}
       }
+    }
+
+    function speak(text) {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'de-DE';
+      window.speechSynthesis.speak(utterance);
     }
 
     function toStringSafe(v) {
@@ -255,10 +208,13 @@
     }
 
     function App() {
+      const [appMode, setAppMode] = React.useState('kontroll');
       const [data, setData] = React.useState([]);
       const [currentScan, setCurrentScan] = React.useState(null);
       const [scanMode, setScanMode] = React.useState('package');
       const [matchedRows, setMatchedRows] = React.useState(new Set());
+      const [labeledIndices, setLabeledIndices] = React.useState(new Set());
+      const [selectionCandidates, setSelectionCandidates] = React.useState(null);
       const [error, setError] = React.useState(null);
       const [scanInput, setScanInput] = React.useState('');
       const [uploadedFileName, setUploadedFileName] = React.useState('');
@@ -266,11 +222,11 @@
       const inputRef = React.useRef(null);
 
       React.useEffect(() => {
-        const tryUnlockAudio = async () => {
-          if (audioEnabled) return;
-          const success = await initAudio();
-          if (success) setAudioReady(true);
-        };
+        document.body.className = `mode-${appMode}`;
+      }, [appMode]);
+
+      React.useEffect(() => {
+        const tryUnlockAudio = async () => { if (!audioEnabled) { const success = await initAudio(); if (success) setAudioReady(true); } };
         const events = ['click', 'touchstart', 'keydown'];
         events.forEach(e => document.addEventListener(e, tryUnlockAudio, { once: true }));
         return () => events.forEach(e => document.removeEventListener(e, tryUnlockAudio));
@@ -285,7 +241,22 @@
             transformHeader: (h) => h.trim().replace(/^"|"$/g, ''),
             transform: (v) => (v ?? '').toString().trim().replace(/^"|"$/g, ''),
             complete: (results) => {
-              setData(results.data.filter(r => r['OrderItem.orderItemName'] !== 'Versandkosten'));
+              const filtered = results.data
+                .filter(r => r['OrderItem.orderItemName'] !== 'Versandkosten')
+                .sort((a, b) => {
+                  const valA = toStringSafe(a['ShippingPackages.packageNumber']);
+                  const valB = toStringSafe(b['ShippingPackages.packageNumber']);
+                  return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+                })
+                .map((row, index) => ({
+                    ...row, seqNr: index + 1, originalIndex: index
+                }));
+              setData(filtered);
+              setMatchedRows(new Set());
+              setLabeledIndices(new Set());
+              setCurrentScan(null);
+              setScanMode('package');
+              setError(null);
             },
             error: (err) => setError('Fehler: ' + err.message),
           });
@@ -297,66 +268,89 @@
         else setScanInput(e.target.value);
       };
 
+      const processBekleben = (row) => {
+        setLabeledIndices(prev => new Set([...prev, row.originalIndex]));
+        speak(row.seqNr.toString());
+        setSelectionCandidates(null);
+      };
+
       const handleScan = (scannedValue) => {
         setError(null);
         const code = toStringSafe(scannedValue);
         const normalizedScannedCode = normalizePackageNumber(code, uploadedFileName);
-        if (scanMode === 'package') {
-          const groupIndexes = data.map((row, idx) => ({ idx, row }))
-            .filter(({ row }) => toStringSafe(row['ShippingPackages.packageNumber']) === normalizedScannedCode)
-            .map(({ idx }) => idx);
-          if (groupIndexes.length === 0) {
-            playSound('negative');
-            setError('Paketnummer nicht gefunden!');
-            setCurrentScan(null);
-            setScanMode('package');
-          } else {
-            const items = groupIndexes.map(i => {
-              const r = data[i];
-              const qty = Math.max(1, parseInt(r['OrderItem.quantity'], 10) || 1);
-              return { rowIndex: i, expectedBarcode: toStringSafe(r['VariationBarcode.code']), qtyRequired: qty, qtyRemaining: qty, name: r['DeliveryAddress.firstName'] + ' ' + r['DeliveryAddress.lastName'], itemName: r['OrderItem.orderItemName'] };
-            });
-            const byBarcode = {};
-            for (const it of items) { const key = it.expectedBarcode; if (!key) continue; byBarcode[key] = (byBarcode[key] || 0) + it.qtyRequired; }
-            const totalRequired = items.reduce((s, it) => s + it.qtyRequired, 0);
-            setCurrentScan({ packageNumber: code, items, byBarcode, totalRequired, totalRemaining: totalRequired });
-            setScanMode('barcode');
-            playSound('positive');
-          }
-        } else {
-          if (!currentScan) return;
-          const groups = { ...currentScan.byBarcode };
-          const remainingForCode = groups[code] || 0;
-          if (remainingForCode > 0) {
-            groups[code] = remainingForCode - 1;
-            const items = currentScan.items.map(it => (it.expectedBarcode === code && it.qtyRemaining > 0) ? { ...it, qtyRemaining: it.qtyRemaining - 1 } : it);
-            const totalRemaining = currentScan.totalRemaining - 1;
-            if (totalRemaining > 0) {
-              setCurrentScan({ ...currentScan, byBarcode: groups, items, totalRemaining });
-              playSound('positive');
-            } else {
-              setMatchedRows(prev => new Set([...prev, ...items.map(it => it.rowIndex)]));
-              playSound('confirm');
+
+        if (appMode === 'kontroll') {
+          if (scanMode === 'package') {
+            const groupIndexes = data.filter(row => {
+              const rowPkgNum = toStringSafe(row['ShippingPackages.packageNumber'] || row['Paketnummer'] || row['PackageNumber']).toLowerCase();
+              const term1 = normalizedScannedCode.toLowerCase();
+              const term2 = code.toLowerCase();
+              return rowPkgNum === term1 || rowPkgNum === term2;
+            }).map(row => row.originalIndex);
+
+            if (groupIndexes.length === 0) {
+              playSound('negative');
+              setError(`Paketnummer "${code}" nicht gefunden!`);
               setCurrentScan(null);
-              setScanMode('package');
+            } else {
+              const items = groupIndexes.map(i => {
+                const r = data.find(d => d.originalIndex === i);
+                const qty = Math.max(1, parseInt(r['OrderItem.quantity'], 10) || 1);
+                return { rowIndex: i, expectedBarcode: toStringSafe(r['VariationBarcode.code']), qtyRequired: qty, qtyRemaining: qty, name: r['DeliveryAddress.firstName'] + ' ' + r['DeliveryAddress.lastName'], itemName: r['OrderItem.orderItemName'] };
+              });
+              const byBarcode = {};
+              for (const it of items) { const key = it.expectedBarcode; if (!key) continue; byBarcode[key] = (byBarcode[key] || 0) + it.qtyRequired; }
+              const totalRequired = items.reduce((s, it) => s + it.qtyRequired, 0);
+              setCurrentScan({ packageNumber: code, items, byBarcode, totalRequired, totalRemaining: totalRequired });
+              setScanMode('barcode'); playSound('positive');
             }
           } else {
-            playSound('negative');
-            setError('Falscher Barcode. Bitte erneut die Paketnummer scannen.');
-            setCurrentScan(null);
-            setScanMode('package');
+            if (!currentScan) return;
+            const groups = { ...currentScan.byBarcode };
+            const remainingForCode = groups[code] || 0;
+            if (remainingForCode > 0) {
+              groups[code] = remainingForCode - 1;
+              const items = currentScan.items.map(it => (it.expectedBarcode === code && it.qtyRemaining > 0) ? { ...it, qtyRemaining: it.qtyRemaining - 1 } : it);
+              const totalRemaining = currentScan.totalRemaining - 1;
+              if (totalRemaining > 0) {
+                setCurrentScan({ ...currentScan, byBarcode: groups, items, totalRemaining });
+                playSound('positive');
+              } else {
+                setMatchedRows(prev => new Set([...prev, ...items.map(it => it.rowIndex)]));
+                playSound('confirm'); setCurrentScan(null); setScanMode('package');
+              }
+            } else {
+              playSound('negative'); setError('Falscher Barcode. Bitte erneut die Paketnummer scannen.');
+              setCurrentScan(null); setScanMode('package');
+            }
+          }
+        } else {
+          // BEKLEBEN MODUS
+          const candidates = data.filter(row => 
+            toStringSafe(row['VariationBarcode.code']) === code && !labeledIndices.has(row.originalIndex)
+          );
+          if (candidates.length === 0) {
+            playSound('negative'); setError('EAN nicht gefunden oder bereits beklebt!');
+            return;
+          }
+          const modelNames = [...new Set(candidates.map(c => c['OrderItem.orderItemName'] || ''))];
+          if (modelNames.length > 1) {
+            setSelectionCandidates(candidates);
+          } else {
+            processBekleben(candidates[0]);
           }
         }
         if (inputRef.current) inputRef.current.focus();
       };
 
-      React.useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, []);
+      React.useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, [appMode]);
 
       const renderTable = () => {
         if (data.length === 0) return React.createElement('p', { className: 'no-data' }, 'Keine Daten hochgeladen.');
         return React.createElement('div', { className: 'table-wrap' },
           React.createElement('table', null, [
             React.createElement('thead', null, React.createElement('tr', null, [
+              React.createElement('th', null, 'NR.'),
               React.createElement('th', null, 'BESTELL-ID'),
               React.createElement('th', null, 'BARCODE'),
               React.createElement('th', null, 'PAKETNUMMER'),
@@ -364,35 +358,68 @@
               React.createElement('th', null, 'ARTIKELNAME'),
               React.createElement('th', null, 'MENGE'),
             ])),
-            React.createElement('tbody', null, data.map((row, index) =>
-              React.createElement('tr', { key: index, className: matchedRows.has(index) ? 'matched' : '' }, [
+            React.createElement('tbody', null, data.map((row) => {
+              const matched = matchedRows.has(row.originalIndex);
+              const labeled = labeledIndices.has(row.originalIndex);
+              return React.createElement('tr', { key: row.originalIndex, className: (matched ? 'matched' : '') + ' ' + (labeled ? 'labeled' : '') }, [
+                React.createElement('td', null, row.seqNr),
                 React.createElement('td', null, row['Order.id']),
                 React.createElement('td', null, toStringSafe(row['VariationBarcode.code'])),
                 React.createElement('td', null, toStringSafe(row['ShippingPackages.packageNumber'])),
                 React.createElement('td', null, row['DeliveryAddress.firstName'] + ' ' + row['DeliveryAddress.lastName']),
                 React.createElement('td', null, row['OrderItem.orderItemName']),
                 React.createElement('td', null, parseInt(row['OrderItem.quantity'], 10) || 1),
-              ])
-            ))
+              ]);
+            }))
           ])
         );
       };
 
       const renderCurrentScan = () => {
-        if (!currentScan) return React.createElement('p', { className: 'scan-status' }, ['Scannen Sie eine ', React.createElement('span', { className: 'accent' }, 'Paketnummer')]);
-        const barcodeList = Object.entries(currentScan.byBarcode).sort((a, b) => a[0].localeCompare(b[0])).map(([ean, count]) => React.createElement('li', { key: ean }, (ean || 'N/A') + ' \u2013 noch ' + count));
-        const itemLines = currentScan.items.map((it, idx) => React.createElement('li', { key: idx }, it.itemName + ' (' + (it.expectedBarcode || 'N/A') + '): ' + (it.qtyRequired - it.qtyRemaining) + '/' + it.qtyRequired + ' gescannt'));
-        const recipientName = currentScan.items && currentScan.items.length > 0 ? currentScan.items[0].name : 'N/A';
-        return React.createElement('div', { className: 'status-panel' },
-          React.createElement('div', { className: 'scan-status' }, [
-            React.createElement('p', null, ['Gescannte Paketnummer: ', React.createElement('span', { className: 'accent' }, currentScan.packageNumber)]),
-            React.createElement('p', null, ['Empf\u00e4nger: ', React.createElement('span', { className: 'accent' }, recipientName)]),
-            React.createElement('p', null, 'Gesamt noch: ' + currentScan.totalRemaining + ' von ' + currentScan.totalRequired),
-            React.createElement('p', null, 'Benötigte EANs:'),
-            React.createElement('ul', null, barcodeList),
-            React.createElement('p', null, 'Positionen:'),
-            React.createElement('ul', null, itemLines),
-            React.createElement('p', { style: { marginTop: '0.5rem' } }, ['Bitte scannen Sie die ', React.createElement('span', { className: 'accent' }, 'zugehörigen EANs'), ' der Positionen.']),
+        if (appMode === 'kontroll') {
+          if (!currentScan) return React.createElement('p', { className: 'scan-status' }, ['Scannen Sie eine ', React.createElement('span', { className: 'accent' }, 'Paketnummer')]);
+          const barcodeList = Object.entries(currentScan.byBarcode).sort((a, b) => a[0].localeCompare(b[0])).filter(([_, count]) => count > 0).map(([ean, count]) => React.createElement('li', { key: ean }, (ean || 'N/A') + ' \u2013 noch ' + count));
+          const itemLines = currentScan.items.map((it, idx) => React.createElement('li', { key: idx }, it.itemName + ' (' + (it.expectedBarcode || 'N/A') + '): ' + (it.qtyRequired - it.qtyRemaining) + '/' + it.qtyRequired + ' gescannt'));
+          const recipientName = currentScan.items && currentScan.items.length > 0 ? currentScan.items[0].name : 'N/A';
+          return React.createElement('div', { className: 'status-panel' },
+            React.createElement('div', { className: 'scan-status' }, [
+              React.createElement('p', null, ['Gescannte Paketnummer: ', React.createElement('span', { className: 'accent' }, currentScan.packageNumber)]),
+              React.createElement('p', null, ['Empf\u00e4nger: ', React.createElement('span', { className: 'accent' }, recipientName)]),
+              React.createElement('p', null, 'Gesamt noch: ' + currentScan.totalRemaining + ' von ' + currentScan.totalRequired),
+              barcodeList.length > 0 && React.createElement('p', null, 'Benötigte EANs:'),
+              barcodeList.length > 0 && React.createElement('ul', { style: { textAlign: 'left', display: 'inline-block' } }, barcodeList),
+              React.createElement('p', null, 'Positionen:'),
+              React.createElement('ul', { style: { textAlign: 'left', display: 'inline-block' } }, itemLines),
+              React.createElement('p', { style: { marginTop: '0.5rem' } }, ['Bitte scannen Sie die ', React.createElement('span', { className: 'accent' }, 'zugehörigen EANs'), ' der Positionen.']),
+            ])
+          );
+        } else {
+          const lastIndex = Array.from(labeledIndices).pop();
+          const lastRow = data.find(r => r.originalIndex === lastIndex);
+          return React.createElement('div', { className: 'status-panel' },
+            React.createElement('div', { className: 'bekleben-display' }, [
+                React.createElement('div', { style: { fontWeight: 600, color: 'var(--text-light)' } }, lastRow ? 'Letzte Nummer:' : 'Bereit zum Bekleben'),
+                React.createElement('div', { className: 'bekleben-num' }, lastRow ? lastRow.seqNr : '-'),
+                lastRow && React.createElement('div', { style: { fontWeight: 700, fontSize: '1.2rem' } }, lastRow['OrderItem.orderItemName']),
+                lastRow && React.createElement('div', { style: { fontWeight: 600, color: 'var(--text-light)', marginTop: '0.4rem' } }, lastRow['DeliveryAddress.firstName'] + ' ' + lastRow['DeliveryAddress.lastName']),
+                !lastRow && React.createElement('p', { className: 'scan-status' }, 'Bitte EAN scannen')
+            ])
+          );
+        }
+      };
+
+      const renderSelectionModal = () => {
+        if (!selectionCandidates) return null;
+        return React.createElement('div', { className: 'modal-overlay' },
+          React.createElement('div', { className: 'modal-card' }, [
+            React.createElement('h2', { style: { marginBottom: '1rem', textAlign: 'center' } }, 'Modell auswählen'),
+            selectionCandidates.map(c => 
+              React.createElement('button', { key: c.originalIndex, className: 'selection-btn', onClick: () => processBekleben(c) }, [
+                React.createElement('div', { style: { fontWeight: 700, fontSize: '1rem' } }, c['OrderItem.orderItemName']),
+                React.createElement('div', { style: { fontSize: '0.85rem', color: 'var(--text-light)' } }, `Bestell-ID: ${c['Order.id']} | Nr: ${c.seqNr}`)
+              ])
+            ),
+            React.createElement('button', { className: 'btn-skip', onClick: () => setSelectionCandidates(null) }, 'Überspringen')
           ])
         );
       };
@@ -402,6 +429,10 @@
           React.createElement('h1', { key: 'h1' }, 'SpedScan'),
           React.createElement('a', { key: 'home', href: 'index.html', className: 'home-btn', title: 'Zur Startseite' }, '\u2302'),
         ]),
+        React.createElement('div', { key: 'modes', className: 'mode-switch' }, [
+            React.createElement('button', { key: 'm1', className: 'mode-btn' + (appMode === 'kontroll' ? ' active green' : ''), onClick: () => { setAppMode('kontroll'); setCurrentScan(null); } }, 'Kontroll Modus'),
+            React.createElement('button', { key: 'm2', className: 'mode-btn' + (appMode === 'bekleben' ? ' active orange' : ''), onClick: () => { setAppMode('bekleben'); setCurrentScan(null); } }, 'Bekleben Modus'),
+        ]),
         error && React.createElement('div', { key: 'error', className: 'error-box' }, error),
         React.createElement('div', { key: 'upload', className: 'neo-card' }, [
           React.createElement('h3', { key: 'title' }, 'Label für Spedition scannen'),
@@ -410,10 +441,11 @@
           ),
         ]),
         React.createElement('div', { key: 'scan', className: 'neo-card' }, [
-          React.createElement('label', { key: 'lbl' }, uploadedFileName.toLowerCase().includes('geis') ? 'Geis Barcode scannen' : 'Barcode scannen'),
-          React.createElement('input', { key: 'inp', type: 'text', value: scanInput, onChange: (e) => setScanInput(e.target.value), onKeyDown: handleScanInput, ref: inputRef, placeholder: scanMode === 'package' ? 'Paketnummer scannen' : (uploadedFileName.toLowerCase().includes('geis') ? 'Geis Barcode scannen' : 'Barcode scannen'), className: 'neo-input' }),
+          React.createElement('label', { key: 'lbl' }, appMode === 'kontroll' ? (uploadedFileName.toLowerCase().includes('geis') ? 'Geis Barcode scannen' : 'Barcode scannen') : 'EAN scannen'),
+          React.createElement('input', { key: 'inp', type: 'text', value: scanInput, onChange: (e) => setScanInput(e.target.value), onKeyDown: handleScanInput, ref: inputRef, placeholder: appMode === 'kontroll' ? (scanMode === 'package' ? 'Paketnummer scannen' : 'Barcode scannen') : 'EAN scannen', className: 'neo-input' }),
           renderCurrentScan(),
         ]),
+        renderSelectionModal(),
         React.createElement('div', { key: 'table', className: 'neo-card' }, [
           React.createElement('h3', { key: 'th' }, 'Daten'),
           renderTable(),
