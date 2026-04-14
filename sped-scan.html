@@ -101,8 +101,8 @@
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 0.6rem 0.75rem; text-align: left; font-size: 0.85rem; }
     th { font-weight: 600; background: var(--bg); box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light); }
-    tr.matched td { background: var(--matched); }
     tr.labeled td { background: var(--labeled); opacity: 0.7; }
+    tr.matched td { background: var(--matched); opacity: 1; }
     .no-data { text-align: center; padding: 1.5rem; color: var(--text-light); }
     
     .bekleben-display { text-align: center; padding: 1rem; }
@@ -135,10 +135,7 @@
     const { createRoot } = ReactDOM;
     const root = createRoot(document.getElementById('root'));
 
-    let audioContext = null;
-    let audioBuffers = {};
     let audioEnabled = false;
-    let useFallbackAudio = false;
     let fallbackSounds = {};
 
     const soundFiles = { positive: 'sounds/positive.mp3', negative: 'sounds/negative.mp3', confirm: 'sounds/confirm.mp3' };
@@ -146,43 +143,36 @@
     async function initAudio() {
       if (audioEnabled) return true;
       try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-        const loadPromises = Object.entries(soundFiles).map(async ([name, url]) => {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          const arrayBuffer = await response.arrayBuffer();
-          audioBuffers[name] = await audioContext.decodeAudioData(arrayBuffer);
-          return true;
-        });
-        await Promise.all(loadPromises);
-        audioEnabled = true; useFallbackAudio = false; return true;
-      } catch (error) {
-        try {
-          const warmupPromises = Object.entries(soundFiles).map(async ([name, url]) => {
-            const audio = new Audio(url); audio.preload = 'auto'; audio.volume = 1.0; fallbackSounds[name] = audio;
-            try { audio.muted = true; await audio.play(); audio.pause(); audio.currentTime = 0; audio.muted = false; } catch(e) {}
-            return true;
+        const warmupPromises = Object.entries(soundFiles).map(([name, url]) => {
+          return new Promise((resolve) => {
+            const audio = new Audio(url);
+            audio.preload = 'auto';
+            fallbackSounds[name] = audio;
+            audio.muted = true;
+            audio.play().then(() => {
+              audio.pause();
+              audio.currentTime = 0;
+              audio.muted = false;
+              resolve(true);
+            }).catch(() => resolve(true));
           });
-          await Promise.all(warmupPromises);
-          audioEnabled = true; useFallbackAudio = true; return true;
-        } catch (e) { return false; }
+        });
+        await Promise.all(warmupPromises);
+        audioEnabled = true;
+        return true;
+      } catch (error) {
+        return false;
       }
     }
 
     function playSound(name) {
       if (!audioEnabled) return;
-      if (useFallbackAudio) {
-        const sound = fallbackSounds[name];
-        if (sound) { try { sound.currentTime = 0; sound.play().catch(()=>{}); } catch(e) {} }
-      } else {
-        if (!audioContext || !audioBuffers[name]) return;
+      const sound = fallbackSounds[name];
+      if (sound) {
         try {
-          const source = audioContext.createBufferSource(); source.buffer = audioBuffers[name];
-          const gainNode = audioContext.createGain(); gainNode.gain.value = 1.0;
-          source.connect(gainNode); gainNode.connect(audioContext.destination);
-          source.start(0);
-        } catch(e) {}
+          sound.currentTime = 0;
+          sound.play().catch(() => {});
+        } catch (e) {}
       }
     }
 
@@ -215,6 +205,7 @@
       const [matchedRows, setMatchedRows] = React.useState(new Set());
       const [labeledIndices, setLabeledIndices] = React.useState(new Set());
       const [selectionCandidates, setSelectionCandidates] = React.useState(null);
+      const [activeBeklebenPackage, setActiveBeklebenPackage] = React.useState(null);
       const [error, setError] = React.useState(null);
       const [scanInput, setScanInput] = React.useState('');
       const [uploadedFileName, setUploadedFileName] = React.useState('');
@@ -241,20 +232,35 @@
             transformHeader: (h) => h.trim().replace(/^"|"$/g, ''),
             transform: (v) => (v ?? '').toString().trim().replace(/^"|"$/g, ''),
             complete: (results) => {
-              const filtered = results.data
-                .filter(r => r['OrderItem.orderItemName'] !== 'Versandkosten')
+              results.data.forEach(row => {
+                ['ShippingPackages.packageNumber', 'Paketnummer', 'PackageNumber'].forEach(k => {
+                  if (row[k]) row[k] = toStringSafe(row[k]).replace(/\D/g, '');
+                });
+              });
+
+              const sortedOriginals = results.data
+                .filter(row => row['OrderItem.orderItemName'] !== 'Versandkosten')
                 .sort((a, b) => {
                   const valA = toStringSafe(a['ShippingPackages.packageNumber']);
                   const valB = toStringSafe(b['ShippingPackages.packageNumber']);
                   return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
                 })
-                .map((row, index) => ({
-                    ...row, seqNr: index + 1, originalIndex: index
-                }));
-              setData(filtered);
+                .map((row, index) => ({ ...row, seqNr: index + 1 }));
+
+              let explodedData = [];
+              let oIndex = 0;
+              sortedOriginals.forEach((row) => {
+                const qty = Math.max(1, parseInt(row['OrderItem.quantity'], 10) || 1);
+                for (let i = 0; i < qty; i++) {
+                  explodedData.push({ ...row, 'OrderItem.quantity': '1', originalIndex: oIndex++ });
+                }
+              });
+
+              setData(explodedData);
               setMatchedRows(new Set());
               setLabeledIndices(new Set());
               setCurrentScan(null);
+              setActiveBeklebenPackage(null);
               setScanMode('package');
               setError(null);
             },
@@ -268,10 +274,41 @@
         else setScanInput(e.target.value);
       };
 
+      const getRowPkgNum = (row) => toStringSafe(row['ShippingPackages.packageNumber'] || row['Paketnummer'] || row['PackageNumber']);
+
       const processBekleben = (row) => {
-        setLabeledIndices(prev => new Set([...prev, row.originalIndex]));
-        speak(row.seqNr.toString());
+        const newLabeled = new Set([...labeledIndices, row.originalIndex]);
+        setLabeledIndices(newLabeled);
         setSelectionCandidates(null);
+
+        const pkgNum = getRowPkgNum(row).toLowerCase();
+        let hasMore = false;
+
+        if (pkgNum && pkgNum !== "") {
+            const remainingInPkg = data.filter(r => 
+                getRowPkgNum(r).toLowerCase() === pkgNum && 
+                !newLabeled.has(r.originalIndex)
+            );
+
+            if (remainingInPkg.length > 0) {
+                hasMore = true;
+                setActiveBeklebenPackage({
+                    packageNumber: pkgNum,
+                    recipient: (row['DeliveryAddress.firstName'] || '') + ' ' + (row['DeliveryAddress.lastName'] || ''),
+                    remainingCount: remainingInPkg.length
+                });
+            } else {
+                setActiveBeklebenPackage(null);
+            }
+        } else {
+            setActiveBeklebenPackage(null);
+        }
+
+        if (hasMore) {
+            speak(row.seqNr.toString() + ", und Hinweis, weitere Artikel");
+        } else {
+            speak(row.seqNr.toString());
+        }
       };
 
       const handleScan = (scannedValue) => {
@@ -282,7 +319,7 @@
         if (appMode === 'kontroll') {
           if (scanMode === 'package') {
             const groupIndexes = data.filter(row => {
-              const rowPkgNum = toStringSafe(row['ShippingPackages.packageNumber'] || row['Paketnummer'] || row['PackageNumber']).toLowerCase();
+              const rowPkgNum = getRowPkgNum(row).toLowerCase();
               const term1 = normalizedScannedCode.toLowerCase();
               const term2 = code.toLowerCase();
               return rowPkgNum === term1 || rowPkgNum === term2;
@@ -296,7 +333,7 @@
               const items = groupIndexes.map(i => {
                 const r = data.find(d => d.originalIndex === i);
                 const qty = Math.max(1, parseInt(r['OrderItem.quantity'], 10) || 1);
-                return { rowIndex: i, expectedBarcode: toStringSafe(r['VariationBarcode.code']), qtyRequired: qty, qtyRemaining: qty, name: r['DeliveryAddress.firstName'] + ' ' + r['DeliveryAddress.lastName'], itemName: r['OrderItem.orderItemName'] };
+                return { rowIndex: i, expectedBarcode: toStringSafe(r['VariationBarcode.code']), qtyRequired: qty, qtyRemaining: qty, name: (r['DeliveryAddress.firstName'] || '') + ' ' + (r['DeliveryAddress.lastName'] || ''), itemName: r['OrderItem.orderItemName'] };
               });
               const byBarcode = {};
               for (const it of items) { const key = it.expectedBarcode; if (!key) continue; byBarcode[key] = (byBarcode[key] || 0) + it.qtyRequired; }
@@ -325,10 +362,25 @@
             }
           }
         } else {
-          // BEKLEBEN MODUS
-          const candidates = data.filter(row => 
-            toStringSafe(row['VariationBarcode.code']) === code && !labeledIndices.has(row.originalIndex)
-          );
+          let candidates = [];
+          if (activeBeklebenPackage) {
+              candidates = data.filter(row => 
+                getRowPkgNum(row).toLowerCase() === activeBeklebenPackage.packageNumber.toLowerCase() &&
+                toStringSafe(row['VariationBarcode.code']) === code &&
+                !labeledIndices.has(row.originalIndex)
+              );
+
+              if (candidates.length === 0) {
+                  playSound('negative');
+                  setError(`Falsche EAN für Sendung ${activeBeklebenPackage.packageNumber}!`);
+                  return;
+              }
+          } else {
+              candidates = data.filter(row => 
+                toStringSafe(row['VariationBarcode.code']) === code && !labeledIndices.has(row.originalIndex)
+              );
+          }
+
           if (candidates.length === 0) {
             playSound('negative'); setError('EAN nicht gefunden oder bereits beklebt!');
             return;
@@ -360,13 +412,13 @@
             ])),
             React.createElement('tbody', null, data.map((row) => {
               const matched = matchedRows.has(row.originalIndex);
-              const labeled = labeledIndices.has(row.originalIndex);
+              const labeled = !matched && labeledIndices.has(row.originalIndex);
               return React.createElement('tr', { key: row.originalIndex, className: (matched ? 'matched' : '') + ' ' + (labeled ? 'labeled' : '') }, [
                 React.createElement('td', null, row.seqNr),
                 React.createElement('td', null, row['Order.id']),
                 React.createElement('td', null, toStringSafe(row['VariationBarcode.code'])),
-                React.createElement('td', null, toStringSafe(row['ShippingPackages.packageNumber'])),
-                React.createElement('td', null, row['DeliveryAddress.firstName'] + ' ' + row['DeliveryAddress.lastName']),
+                React.createElement('td', null, getRowPkgNum(row)),
+                React.createElement('td', null, (row['DeliveryAddress.firstName'] || '') + ' ' + (row['DeliveryAddress.lastName'] || '')),
                 React.createElement('td', null, row['OrderItem.orderItemName']),
                 React.createElement('td', null, parseInt(row['OrderItem.quantity'], 10) || 1),
               ]);
@@ -398,11 +450,20 @@
           const lastRow = data.find(r => r.originalIndex === lastIndex);
           return React.createElement('div', { className: 'status-panel' },
             React.createElement('div', { className: 'bekleben-display' }, [
+                activeBeklebenPackage && React.createElement('div', { style: { background: '#fff3e0', padding: '15px', borderRadius: '16px', marginBottom: '15px', border: '3px solid #e67e22', boxShadow: '0 4px 10px rgba(230, 126, 34, 0.3)' } }, [
+                    React.createElement('div', { style: { color: '#e67e22', fontWeight: 900, fontSize: '1.2rem', marginBottom: '5px' } }, '⚠️ LAUFENDE SENDUNG'),
+                    React.createElement('div', { style: { fontSize: '1rem', fontWeight: 600 } }, activeBeklebenPackage.recipient),
+                    React.createElement('div', { style: { fontWeight: 700, marginTop: '5px', color: '#2d3436' } }, `Noch ${activeBeklebenPackage.remainingCount} Artikel dieser Sendung offen!`),
+                    React.createElement('button', { 
+                        onClick: () => setActiveBeklebenPackage(null),
+                        style: { marginTop: '10px', padding: '8px 15px', borderRadius: '10px', border: 'none', background: '#ecf0f1', color: '#7f8c8d', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '2px 2px 5px rgba(0,0,0,0.1)' } 
+                    }, 'Sitzung beenden')
+                ]),
                 React.createElement('div', { style: { fontWeight: 600, color: 'var(--text-light)' } }, lastRow ? 'Letzte Nummer:' : 'Bereit zum Bekleben'),
                 React.createElement('div', { className: 'bekleben-num' }, lastRow ? lastRow.seqNr : '-'),
                 lastRow && React.createElement('div', { style: { fontWeight: 700, fontSize: '1.2rem' } }, lastRow['OrderItem.orderItemName']),
-                lastRow && React.createElement('div', { style: { fontWeight: 600, color: 'var(--text-light)', marginTop: '0.4rem' } }, lastRow['DeliveryAddress.firstName'] + ' ' + lastRow['DeliveryAddress.lastName']),
-                !lastRow && React.createElement('p', { className: 'scan-status' }, 'Bitte EAN scannen')
+                lastRow && React.createElement('div', { style: { fontWeight: 600, color: 'var(--text-light)', marginTop: '0.4rem' } }, (lastRow['DeliveryAddress.firstName'] || '') + ' ' + (lastRow['DeliveryAddress.lastName'] || '')),
+                !lastRow && !activeBeklebenPackage && React.createElement('p', { className: 'scan-status' }, 'Bitte EAN scannen')
             ])
           );
         }
