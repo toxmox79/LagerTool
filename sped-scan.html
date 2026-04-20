@@ -244,12 +244,22 @@
                   const valA = toStringSafe(a['ShippingPackages.packageNumber']);
                   const valB = toStringSafe(b['ShippingPackages.packageNumber']);
                   return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
-                })
-                .map((row, index) => ({ ...row, seqNr: index + 1 }));
+                });
+
+              let currentSeq = 0;
+              let lastPackage = null;
+              const groupedRows = sortedOriginals.map((row) => {
+                const packageKey = getRowPkgNum(row).toLowerCase();
+                if (packageKey !== lastPackage) {
+                  currentSeq += 1;
+                  lastPackage = packageKey;
+                }
+                return { ...row, seqNr: currentSeq };
+              });
 
               let explodedData = [];
               let oIndex = 0;
-              sortedOriginals.forEach((row) => {
+              groupedRows.forEach((row) => {
                 const qty = Math.max(1, parseInt(row['OrderItem.quantity'], 10) || 1);
                 for (let i = 0; i < qty; i++) {
                   explodedData.push({ ...row, 'OrderItem.quantity': '1', originalIndex: oIndex++ });
@@ -376,9 +386,17 @@
                   return;
               }
           } else {
-              candidates = data.filter(row => 
+              const candidateRows = data.filter(row => 
                 toStringSafe(row['VariationBarcode.code']) === code && !labeledIndices.has(row.originalIndex)
               );
+              const groupedByPackage = new Map();
+              candidateRows.forEach(row => {
+                const pkg = getRowPkgNum(row).toLowerCase();
+                if (!groupedByPackage.has(pkg)) {
+                  groupedByPackage.set(pkg, row);
+                }
+              });
+              candidates = Array.from(groupedByPackage.values());
           }
 
           if (candidates.length === 0) {
