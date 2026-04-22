@@ -262,23 +262,25 @@
                 parts.forEach(p => allUniquePackageNumbers.add(p));
 
                 if (parts.length > 1) {
-                  // Sonderfall: items will be distributed manually.
-                  // Initially put all items on the first label.
-                  group.rows.forEach(row => {
-                    const newRow = { ...row, _isSonderfall: true, _allPackageNumbers: parts };
-                    const key = ['ShippingPackages.packageNumber', 'Paketnummer', 'PackageNumber'].find(k => row[k]) || 'Paketnummer';
-                    newRow[key] = parts[0];
-                    processedRows.push(newRow);
+                  // Duplicate all physical items for every label available for this customer
+                  parts.forEach((p, pIdx) => {
+                    group.rows.forEach((row, rIdx) => {
+                      const qtyTotal = parseInt(row['OrderItem.quantity'], 10) || 0;
+                      // Create an entry for each unit of quantity
+                      for (let i = 0; i < qtyTotal; i++) {
+                        const newRow = { 
+                          ...row, 
+                          _isSonderfall: true, 
+                          _allPackageNumbers: parts,
+                          _itemRef: `${row['Order.id']}-${rIdx}-${i}`, // Tracks the actual physical item across labels
+                          'OrderItem.quantity': '1'
+                        };
+                        const key = ['ShippingPackages.packageNumber', 'Paketnummer', 'PackageNumber'].find(k => row[k] !== undefined) || 'Paketnummer';
+                        newRow[key] = p;
+                        processedRows.push(newRow);
+                      }
+                    });
                   });
-                  // Create dummy rows for other labels to ensure they appear chronologically in the table
-                  for (let i = 1; i < parts.length; i++) {
-                    const dummyRow = { ...group.rows[0], _isSonderfall: true, _allPackageNumbers: parts };
-                    const key = ['ShippingPackages.packageNumber', 'Paketnummer', 'PackageNumber'].find(k => group.rows[0][k]) || 'Paketnummer';
-                    dummyRow[key] = parts[i];
-                    dummyRow['OrderItem.quantity'] = '0';
-                    dummyRow['OrderItem.orderItemName'] = '(Zusätzliches Label)';
-                    processedRows.push(dummyRow);
-                  }
                 } else {
                   // Single label order
                   group.rows.forEach(row => {
@@ -316,13 +318,14 @@
               let explodedData = [];
               let oIndex = 0;
               processedRows.forEach((row) => {
-                const qtyVal = parseInt(row['OrderItem.quantity'], 10) || 0;
-                const qtyToLoop = (row._isSonderfall && qtyVal === 0) ? 1 : Math.max(1, qtyVal);
+                // If the row was already part of a multi-label split, quantity is already 1
+                const qtyVal = row._itemRef ? 1 : (parseInt(row['OrderItem.quantity'], 10) || 0);
+                const qtyToLoop = Math.max(1, qtyVal);
                 
                 for (let i = 0; i < qtyToLoop; i++) {
                   explodedData.push({ 
                     ...row, 
-                    'OrderItem.quantity': (qtyVal > 0) ? '1' : '0', 
+                    'OrderItem.quantity': qtyToLoop === 1 && qtyVal === 0 ? '0' : '1', 
                     originalIndex: oIndex++ 
                   });
                 }
@@ -387,34 +390,58 @@
       // --- Sonderfall: finish scanning for current label ---
       const finishSonderfall = () => {
         if (!sonderfallState) return;
-        const { orderId, scannedIndices, allSeqNrs } = sonderfallState;
-        const scannedSet = new Set(scannedIndices);
+        const { orderId, scannedIndices, allSeqNrs, currentSeqNr } = sonderfallState;
+        
+        const scannedRows = data.filter(r => scannedIndices.includes(r.originalIndex));
+        const scannedItemsRefs = new Set(scannedRows.map(r => r._itemRef));
+        
+        const assignedNr = currentSeqNr || allSeqNrs[0];
+        const labelObj = sonderfallState.availableLabels.find(l => l.seqNr === assignedNr);
+        const assignedPkgNum = labelObj ? labelObj.pkgNum : '';
+        const remainingSeqNrs = allSeqNrs.filter(n => n !== assignedNr);
 
-        const firstSeqNr = allSeqNrs[0];
-        const remainingSeqNrs = allSeqNrs.slice(1);
+        // Find the correct key for package number
+        const getPkgKey = (r) => ['ShippingPackages.packageNumber', 'Paketnummer', 'PackageNumber'].find(k => r[k] !== undefined) || 'Paketnummer';
 
-        const newData = data.map(row => {
-          if (row['Order.id'] !== orderId) return row;
-          if (scannedSet.has(row.originalIndex)) {
-            return { ...row, seqNr: firstSeqNr };
-          }
-          return { ...row }; // Return new object copy to avoid mutation
+        // 1. Mark scanned rows as labeled and update their label/pkg
+        const assignedRows = scannedRows.map(r => {
+            const updated = { ...r, seqNr: assignedNr };
+            updated[getPkgKey(r)] = assignedPkgNum;
+            return updated;
         });
 
-        // Distribute unscanned items and dummies across remaining seqNrs
-        const unscannedOfOrder = newData.filter(r =>
-          r['Order.id'] === orderId && !scannedSet.has(r.originalIndex) && !labeledIndices.has(r.originalIndex)
-        );
-        if (remainingSeqNrs.length > 0 && unscannedOfOrder.length > 0) {
-          let seqIdx = 0;
-          unscannedOfOrder.forEach(row => {
-            row.seqNr = remainingSeqNrs[Math.min(seqIdx, remainingSeqNrs.length - 1)];
-            seqIdx++;
-          });
-        }
+        // 2. Identify remaining physical items that were NOT scanned
+        const allOrderRows = data.filter(r => r['Order.id'] === orderId);
+        const allItemRefs = [...new Set(allOrderRows.map(r => r._itemRef))];
+        const unassignedItemRefs = allItemRefs.filter(ref => !scannedItemsRefs.has(ref));
+        
+        const redistributedRows = [];
+        unassignedItemRefs.forEach((ref, i) => {
+            // Find an unlabeled row for this item ref from the current data
+            const proto = allOrderRows.find(r => r._itemRef === ref && !labeledIndices.has(r.originalIndex));
+            if (proto) {
+                const updated = { ...proto };
+                const targetSeq = remainingSeqNrs[Math.min(i, remainingSeqNrs.length - 1)] || assignedNr;
+                const targetLabel = sonderfallState.availableLabels.find(l => l.seqNr === targetSeq);
+                updated.seqNr = targetSeq;
+                if (targetLabel) updated[getPkgKey(updated)] = targetLabel.pkgNum;
+                redistributedRows.push(updated);
+            }
+        });
 
-        // Mark all scanned items as labeled
-        const newLabeled = new Set([...labeledIndices, ...scannedIndices]);
+        // 3. Build new data array: remove all old rows of this order and add the new correct ones
+        const newData = data.filter(r => r['Order.id'] !== orderId);
+        newData.push(...assignedRows);
+        newData.push(...redistributedRows);
+        
+        // Add back any items that were already labeled for this order in previous rounds
+        const alreadyLabeledRows = allOrderRows.filter(r => labeledIndices.has(r.originalIndex));
+        newData.push(...alreadyLabeledRows);
+        
+        // Sorting to keep chronological structure
+        newData.sort((a, b) => a.seqNr - b.seqNr);
+
+        const newLabeled = new Set([...labeledIndices, ...assignedRows.map(r => r.originalIndex)]);
 
         setData(newData);
         setLabeledIndices(newLabeled);
@@ -422,13 +449,13 @@
         setActiveBeklebenPackage(null);
         playSound('confirm');
 
-        // Announce assigned label numbers
-        const assignedNr = firstSeqNr;
+        // Announce
+        const assignedVal = assignedNr;
         const remainingNrs = remainingSeqNrs.join(', ');
         if (remainingSeqNrs.length > 0) {
-          speak(`Fertig. Gescannte Artikel auf Label ${assignedNr}. Verbleibende auf Label ${remainingNrs}.`);
+          speak(`Fertig. Gescannte Artikel auf Label ${assignedVal}. Verbleibende auf Label ${remainingNrs}.`);
         } else {
-          speak(`Fertig. Alle Artikel auf Label ${assignedNr}.`);
+          speak(`Fertig. Alle Artikel auf Label ${assignedVal}.`);
         }
       };
 
@@ -549,22 +576,43 @@
             const unlabeledOrderRows = data.filter(r =>
               r['Order.id'] === orderId && !labeledIndices.has(r.originalIndex)
             );
-            const distinctUnlabeledSeqNrs = [...new Set(unlabeledOrderRows.map(r => r.seqNr))].sort((a, b) => a - b);
 
-            if (distinctUnlabeledSeqNrs.length > 1) {
+            // Get unique pairs of seqNr and pkgNum for label choice
+            const availableLabels = [];
+            const seenSeq = new Set();
+            unlabeledOrderRows.forEach(r => {
+              if (!seenSeq.has(r.seqNr)) {
+                seenSeq.add(r.seqNr);
+                availableLabels.push({ seqNr: r.seqNr, pkgNum: getRowPkgNum(r) });
+              }
+            });
+            availableLabels.sort((a, b) => a.seqNr - b.seqNr);
+
+            if (availableLabels.length > 1) {
+              const actualItemsCount = unlabeledOrderRows.filter(r => r['OrderItem.quantity'] !== '0').length;
+              if (actualItemsCount === 0) {
+                   // Only dummies left, don't enter Sonderfall, just process normally
+                   processBekleben(candidate);
+                   return;
+              }
+
               // Enter Sonderfall mode
               playSound('positive');
-              speak('Sonderfall. Bitte alle E A N von Label scannen.');
+              speak('Sonderfall. Bitte Label wählen und E A N s scannen.');
               const recipient = (candidate['DeliveryAddress.firstName'] || '') + ' ' + (candidate['DeliveryAddress.lastName'] || '');
+              
               setSonderfallState({
                 orderId: orderId,
-                allSeqNrs: distinctUnlabeledSeqNrs,
+                availableLabels: availableLabels,
+                allSeqNrs: availableLabels.map(l => l.seqNr),
+                currentSeqNr: availableLabels[0].seqNr, // Default to first available
                 recipient: recipient,
-                totalItems: unlabeledOrderRows.length,
+                totalItems: actualItemsCount,
                 scannedIndices: [candidate.originalIndex],
                 scannedItems: [{ index: candidate.originalIndex, name: candidate['OrderItem.orderItemName'], ean: code }]
               });
               setActiveBeklebenPackage(null);
+              setScanInput('');
               return;
             }
           }
@@ -633,28 +681,62 @@
         } else {
           // --- Sonderfall active display ---
           if (sonderfallState) {
+            const allUnlabeledItems = data.filter(r => 
+              r['Order.id'] === sonderfallState.orderId && !labeledIndices.has(r.originalIndex)
+            );
+
             return React.createElement('div', { className: 'status-panel' },
               React.createElement('div', { className: 'bekleben-display' }, [
                 React.createElement('div', { style: { background: '#fde8e8', padding: '15px', borderRadius: '16px', marginBottom: '15px', border: '3px solid #c0392b', boxShadow: '0 4px 10px rgba(192, 57, 43, 0.3)' } }, [
                   React.createElement('div', { style: { color: '#c0392b', fontWeight: 900, fontSize: '1.3rem', marginBottom: '5px' } }, '⚠️ SONDERFALL'),
                   React.createElement('div', { style: { fontSize: '1rem', fontWeight: 600 } }, sonderfallState.recipient),
-                  React.createElement('div', { style: { fontWeight: 700, marginTop: '5px', color: '#2d3436' } },
-                    `Label-Nummern: ${sonderfallState.allSeqNrs.join(', ')}`
+                  React.createElement('div', { style: { fontSize: '0.9rem', fontWeight: 800, color: '#c0392b', marginTop: '5px', background: '#fff', padding: '5px 10px', borderRadius: '8px', display: 'inline-block' } }, 
+                    `Ziel-Paket: ${sonderfallState.availableLabels.find(l => l.seqNr === sonderfallState.currentSeqNr)?.pkgNum || ''}`
                   ),
-                  React.createElement('div', { style: { marginTop: '8px', color: '#2d3436' } },
-                    `Gescannt: ${sonderfallState.scannedIndices.length} von ${sonderfallState.totalItems} Artikeln`
-                  ),
-                  sonderfallState.scannedItems.length > 0 && React.createElement('ul', { style: { textAlign: 'left', margin: '8px 0 0 1.5rem', fontSize: '0.85rem' } },
-                    sonderfallState.scannedItems.map((item, i) =>
-                      React.createElement('li', { key: i }, `${item.name} (${item.ean})`)
+                  
+                  React.createElement('p', { style: { fontWeight: 700, marginTop: '10px', marginBottom: '5px', fontSize: '0.9rem' } }, 'Aktuelles Label wählen:'),
+                  React.createElement('div', { style: { display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' } }, 
+                    sonderfallState.availableLabels.map(l => 
+                      React.createElement('button', {
+                        key: l.seqNr,
+                        onClick: () => setSonderfallState(prev => ({ ...prev, currentSeqNr: l.seqNr })),
+                        style: { 
+                          padding: '8px 12px', 
+                          borderRadius: '8px', 
+                          border: 'none', 
+                          background: sonderfallState.currentSeqNr === l.seqNr ? '#c0392b' : '#eee',
+                          color: sonderfallState.currentSeqNr === l.seqNr ? 'white' : '#2d3436',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          fontSize: '0.85rem'
+                        }
+                      }, `Nr. ${l.seqNr}`)
                     )
                   ),
-                  React.createElement('div', { style: { fontWeight: 600, marginTop: '8px', color: '#636e72', fontSize: '0.85rem' } },
-                    'Bitte alle EANs scannen, die auf dieses Label gehören.'
+
+                  React.createElement('div', { style: { marginTop: '8px', color: '#2d3436', fontSize: '0.9rem', fontWeight: 600 } },
+                    `Gescannt: ${sonderfallState.scannedIndices.length} von ${sonderfallState.totalItems} Artikeln`
                   ),
+
+                  React.createElement('div', { style: { marginTop: '10px', borderTop: '1px solid #fab1a0', paddingTop: '10px' } }, [
+                    React.createElement('p', { style: { fontWeight: 700, fontSize: '0.85rem', marginBottom: '5px' } }, 'Geräte-Checkliste (Dieser Kunde):'),
+                    React.createElement('ul', { style: { textAlign: 'left', margin: '0', paddingLeft: '1.2rem', fontSize: '0.8rem', maxHeight: '150px', overflowY: 'auto' } }, 
+                      allUnlabeledItems.filter(r => r['OrderItem.quantity'] !== '0').map(r => {
+                        const isScanned = sonderfallState.scannedIndices.includes(r.originalIndex);
+                        return React.createElement('li', { 
+                          key: r.originalIndex,
+                          style: { color: isScanned ? '#27ae60' : '#2d3436', fontWeight: isScanned ? 700 : 400, marginBottom: '2px' } 
+                        }, [
+                          r['OrderItem.orderItemName'],
+                          isScanned && ' ✅'
+                        ]);
+                      })
+                    )
+                  ]),
+
                   React.createElement('button', {
                     onClick: finishSonderfall,
-                    style: { marginTop: '12px', width: '100%', padding: '14px', borderRadius: '14px', border: 'none', background: '#27ae60', color: 'white', fontSize: '1.1rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 10px rgba(39,174,96,0.3)' }
+                    style: { marginTop: '15px', width: '100%', padding: '14px', borderRadius: '14px', border: 'none', background: '#27ae60', color: 'white', fontSize: '1.1rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 10px rgba(39,174,96,0.3)' }
                   }, '✅ ABGESCHLOSSEN'),
                   React.createElement('button', {
                     onClick: () => setSonderfallState(null),
